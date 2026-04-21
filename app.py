@@ -6,9 +6,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 
 # ---------------------------
-# OpenAI client
+# OpenAI client (STREAMLIT CLOUD SAFE)
 # ---------------------------
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # ---------------------------
 # Load embedding model
@@ -24,7 +24,10 @@ model = load_model()
 # ---------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_excel("ND Central Data Scrape .xlsx")  # make sure this exists
+    # IMPORTANT: rename file to remove spaces before uploading
+    df = pd.read_excel("clubs.xlsx")
+
+    df = df.dropna(subset=["Club Name", "Club Description"])
 
     sentences = (df['Club Name'] + ". " + df['Club Description']).tolist()
     embeddings = model.encode(sentences, show_progress_bar=False)
@@ -72,12 +75,11 @@ Keep it concise and friendly.
     return response.choices[0].message.content
 
 # ---------------------------
-# Streamlit UI
+# UI
 # ---------------------------
 st.title("🎓 Club Recommender")
 st.write("Find clubs that match your interests!")
 
-# Interest selection
 interests = st.multiselect(
     "Select your interests:",
     [
@@ -94,7 +96,6 @@ interests = st.multiselect(
     ]
 )
 
-# Filters
 experience = st.selectbox(
     "Experience level:",
     ["Beginner", "Intermediate", "Advanced"]
@@ -102,15 +103,12 @@ experience = st.selectbox(
 
 commitment = st.slider("Hours per week:", 1, 10)
 
-# Optional text input
 extra = st.text_input("Anything else you're looking for? (optional)")
 
-# Build query
 query = ", ".join(interests)
 if extra:
     query += ". " + extra
 
-# Button
 if st.button("Find Clubs"):
     if not interests and not extra:
         st.warning("Please select at least one interest or enter a preference.")
