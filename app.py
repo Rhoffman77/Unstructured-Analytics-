@@ -89,13 +89,6 @@ interests = st.multiselect(
     ]
 )
 
-experience = st.selectbox(
-    "Experience level:",
-    ["Beginner", "Intermediate", "Advanced"]
-)
-
-commitment = st.slider("Hours per week:", 1, 10)
-
 extra = st.text_input("Anything else you're looking for? (optional)")
 
 query = ", ".join(interests)
