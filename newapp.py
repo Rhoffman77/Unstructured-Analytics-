@@ -142,6 +142,23 @@ h1, h2, h3 {
     color: #f0ece0 !important;
 }
 
+/* Multiselect selected tags — gold on navy */
+span[data-baseweb="tag"] {
+    background-color: rgba(201, 151, 0, 0.2) !important;
+    border: 1px solid rgba(201, 151, 0, 0.6) !important;
+    border-radius: 6px !important;
+    color: #C99700 !important;
+}
+
+/* The × close button inside each tag */
+span[data-baseweb="tag"] span[role="presentation"] {
+    color: #C99700 !important;
+}
+span[data-baseweb="tag"] span[role="presentation"]:hover {
+    color: #f0ece0 !important;
+    background-color: rgba(201, 151, 0, 0.35) !important;
+}
+
 .stTextInput > div > div > input {
     background: rgba(12, 35, 64, 0.8) !important;
     border: 1px solid rgba(174, 145, 66, 0.3) !important;
