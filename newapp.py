@@ -1,0 +1,370 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from openai import OpenAI
+from pydantic import BaseModel
+from typing import List
+import json
+
+# ---------------------------
+# Page config
+# ---------------------------
+st.set_page_config(
+    page_title="ND Club Finder",
+    page_icon="☘️",
+    layout="centered"
+)
+
+# ---------------------------
+# Custom CSS
+# ---------------------------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Source Sans 3', sans-serif;
+}
+
+.stApp {
+    background: linear-gradient(160deg, #0C2340 0%, #0a1e38 50%, #071529 100%);
+    min-height: 100vh;
+}
+
+h1, h2, h3 {
+    font-family: 'Playfair Display', serif !important;
+}
+
+.hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: #C99700;
+    text-align: center;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.2rem;
+}
+
+.hero-subtitle {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 1.1rem;
+    color: #AE9142;
+    text-align: center;
+    font-weight: 300;
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.5px;
+}
+
+.section-label {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #C99700;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    background: rgba(12, 35, 64, 0.6);
+    border: 1px solid rgba(174, 145, 66, 0.3);
+    border-radius: 16px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.club-rank {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: rgba(201, 151, 0, 0.25);
+    line-height: 1;
+}
+
+.club-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #f0ece0;
+    margin-bottom: 0.3rem;
+}
+
+.fit-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, #00843D22, #00843D44);
+    color: #4cce7f;
+    border: 1px solid #00843D;
+    border-radius: 20px;
+    padding: 0.15rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.8rem;
+}
+
+.club-summary {
+    color: #AE9142;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.6rem;
+    font-style: italic;
+}
+
+.club-why {
+    color: #d4dce8;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.why-label {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #C99700;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid rgba(174, 145, 66, 0.2);
+    margin: 1.5rem 0;
+}
+
+.stSelectbox > div > div,
+.stMultiSelect > div > div {
+    background: rgba(12, 35, 64, 0.8) !important;
+    border: 1px solid rgba(174, 145, 66, 0.3) !important;
+    border-radius: 10px !important;
+    color: #f0ece0 !important;
+}
+
+.stTextInput > div > div > input {
+    background: rgba(12, 35, 64, 0.8) !important;
+    border: 1px solid rgba(174, 145, 66, 0.3) !important;
+    border-radius: 10px !important;
+    color: #f0ece0 !important;
+}
+
+.stSlider > div > div > div > div {
+    background: #C99700 !important;
+}
+
+.stButton > button {
+    width: 100%;
+    background: linear-gradient(135deg, #AE9142, #C99700) !important;
+    color: #0C2340 !important;
+    font-family: 'Source Sans 3', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.75rem 2rem !important;
+    margin-top: 1rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(201, 151, 0, 0.35) !important;
+}
+
+label[data-testid="stWidgetLabel"] p {
+    color: #AE9142 !important;
+    font-family: 'Source Sans 3', sans-serif !important;
+    font-size: 0.85rem !important;
+}
+
+.stSpinner > div {
+    border-top-color: #C99700 !important;
+}
+
+/* Green accent line on cards */
+.card:hover {
+    border-color: rgba(0, 132, 61, 0.5) !important;
+    transition: border-color 0.2s ease;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------
+# Pydantic models
+# ---------------------------
+class ClubRecommendation(BaseModel):
+    rank: int
+    club_name: str
+    fit_percentage: int
+    summary: str
+    why: str
+
+class RecommendationResponse(BaseModel):
+    recommendations: List[ClubRecommendation]
+
+# ---------------------------
+# OpenAI client
+# ---------------------------
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+# ---------------------------
+# Load embedding model
+# ---------------------------
+@st.cache_resource
+def load_model():
+    return SentenceTransformer('all-mpnet-base-v2')
+
+model = load_model()
+
+# ---------------------------
+# Load data + embeddings
+# ---------------------------
+@st.cache_data
+def load_data(_model):
+    df = pd.read_excel("clubs.xlsx")
+    df.columns = df.columns.str.strip()
+    df = df.dropna(subset=["Club Name", "Club Description"])
+    sentences = (df['Club Name'] + ". " + df['Club Description']).tolist()
+    embeddings = _model.encode(sentences, show_progress_bar=False)
+    df['embedding'] = embeddings.tolist()
+    return df, np.array(embeddings)
+
+df, embeddings = load_data(model)
+
+# ---------------------------
+# Search function
+# ---------------------------
+def search_clubs(query, top_k=10):
+    query_embedding = model.encode([query])
+    similarities = cosine_similarity(query_embedding, embeddings)[0]
+    top_indices = similarities.argsort()[::-1][:top_k]
+    return df.iloc[top_indices][['Club Name', 'Club Description']]
+
+# ---------------------------
+# LLM recommendation function
+# ---------------------------
+def get_recommendations(query, experience, commitment, dorm, class_year, major):
+    candidates = search_clubs(query)
+    prompt = f"""
+A Notre Dame student is looking for clubs.
+
+Interests: {query}
+Experience level: {experience}
+Available time: {commitment} hours per week
+Dorm: {dorm}
+Class Year: {class_year}
+Major: {major}
+
+Here are some possible clubs:
+{candidates.to_string(index=False)}
+
+Pick the best 5 clubs. For each, provide:
+- rank (1-5)
+- club_name (exact name from the list)
+- fit_percentage (0-100, how well it matches this student)
+- summary (1-2 sentence description of what the club does)
+- why (1-2 sentences on why it fits THIS specific student based on their profile)
+
+Respond ONLY with a valid JSON object in this exact format, no markdown or extra text:
+{{
+  "recommendations": [
+    {{
+      "rank": 1,
+      "club_name": "...",
+      "fit_percentage": 92,
+      "summary": "...",
+      "why": "..."
+    }}
+  ]
+}}
+"""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+
+    raw = response.choices[0].message.content
+    data = json.loads(raw)
+    return RecommendationResponse(**data)
+
+# ---------------------------
+# UI
+# ---------------------------
+st.markdown('<div class="hero-title">☘️ ND Club Finder</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-subtitle">Discover your place at Notre Dame</div>', unsafe_allow_html=True)
+
+with st.container():
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown('<div class="section-label">Class Year</div>', unsafe_allow_html=True)
+        class_year = st.selectbox("Class Year", ["2026", "2027", "2028", "2029"], label_visibility="collapsed")
+
+    with col2:
+        st.markdown('<div class="section-label">Major</div>', unsafe_allow_html=True)
+        major = st.selectbox("Major", [
+            "Business Analytics", "Finance", "Accounting",
+            "Computer Science", "Engineering", "Political Science",
+            "Psychology", "Biology", "Economics", "Undecided"
+        ], label_visibility="collapsed")
+
+    st.markdown('<div class="section-label">Dorm</div>', unsafe_allow_html=True)
+    dorm = st.selectbox("Dorm", [
+        "Pasquerilla West", "Pasquerilla East", "Lyons", "Lewis", "Badin",
+        "Welsh Family", "McGlinn", "Farley", "Pangborn", "Zahm",
+        "Dillon", "Alumni", "Sorin", "Stanford", "Morrissey",
+        "Keough", "O'Neill", "Duncan", "Flaherty", "Off Campus"
+    ], label_visibility="collapsed")
+
+    st.markdown('<div class="section-label">Interests</div>', unsafe_allow_html=True)
+    interests = st.multiselect("Interests", [
+        "AI / Machine Learning", "Programming", "Robotics",
+        "Business", "Finance", "Art", "Music", "Sports",
+        "Volunteering", "Social / Networking", "Research",
+        "Entrepreneurship", "Pre-Law", "Pre-Med", "Faith & Service"
+    ], label_visibility="collapsed")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown('<div class="section-label">Experience Level</div>', unsafe_allow_html=True)
+        experience = st.selectbox("Experience", ["Beginner", "Intermediate", "Advanced"], label_visibility="collapsed")
+    with col4:
+        st.markdown('<div class="section-label">Hours / Week</div>', unsafe_allow_html=True)
+        commitment = st.slider("Hours", 1, 10, 3, label_visibility="collapsed")
+
+    st.markdown('<div class="section-label">Anything else?</div>', unsafe_allow_html=True)
+    extra = st.text_input("Extra", placeholder="e.g. I want to meet people outside my major...", label_visibility="collapsed")
+
+query = ", ".join(interests)
+if extra:
+    query += ". " + extra
+
+if st.button("Find My Clubs →"):
+    if not interests and not extra:
+        st.warning("Please select at least one interest or add a note above.")
+    else:
+        with st.spinner("Finding your perfect clubs..."):
+            result = get_recommendations(query, experience, commitment, dorm, class_year, major)
+
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        st.markdown('<div class="hero-subtitle" style="margin-bottom:1.5rem">Your Top Matches</div>', unsafe_allow_html=True)
+
+        for club in result.recommendations:
+            st.markdown(f"""
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <div class="club-rank">#{club.rank}</div>
+                        <div class="club-name">{club.club_name}</div>
+                    </div>
+                    <div class="fit-badge">☘️ {club.fit_percentage}% fit</div>
+                </div>
+                <div class="club-summary">{club.summary}</div>
+                <div class="why-label">Why it's right for you</div>
+                <div class="club-why">{club.why}</div>
+            </div>
+            """, unsafe_allow_html=True)
