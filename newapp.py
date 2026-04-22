@@ -149,10 +149,6 @@ h1, h2, h3 {
     color: #f0ece0 !important;
 }
 
-.stSlider > div > div > div > div {
-    background: #C99700 !important;
-}
-
 .stButton > button {
     width: 100%;
     background: linear-gradient(135deg, #AE9142, #C99700) !important;
@@ -184,7 +180,6 @@ label[data-testid="stWidgetLabel"] p {
     border-top-color: #C99700 !important;
 }
 
-/* Green accent line on cards */
 .card:hover {
     border-color: rgba(0, 132, 61, 0.5) !important;
     transition: border-color 0.2s ease;
@@ -246,14 +241,12 @@ def search_clubs(query, top_k=10):
 # ---------------------------
 # LLM recommendation function
 # ---------------------------
-def get_recommendations(query, experience, commitment, dorm, class_year, major):
+def get_recommendations(query, dorm, class_year, major):
     candidates = search_clubs(query)
     prompt = f"""
 A Notre Dame student is looking for clubs.
 
 Interests: {query}
-Experience level: {experience}
-Available time: {commitment} hours per week
 Dorm: {dorm}
 Class Year: {class_year}
 Major: {major}
@@ -307,34 +300,45 @@ with st.container():
     with col2:
         st.markdown('<div class="section-label">Major</div>', unsafe_allow_html=True)
         major = st.selectbox("Major", [
-            "Business Analytics", "Finance", "Accounting",
-            "Computer Science", "Engineering", "Political Science",
-            "Psychology", "Biology", "Economics", "Undecided"
+            "Undecided", "Accountancy", "Aerospace Engineering", "Africana Studies",
+            "American Studies", "Anthropology",
+            "Applied & Computational Mathematics and Statistics (ACMS)",
+            "Arabic Studies", "Architecture", "Art History", "Biochemistry",
+            "Biological Sciences", "Business Analytics", "Chemical Engineering",
+            "Chemistry", "Chinese", "Civil Engineering", "Classics",
+            "Computer Science", "Economics", "Electrical Engineering",
+            "Engineering (General)", "English", "Environmental Engineering",
+            "Environmental Sciences", "Film, Television, and Theatre", "Finance",
+            "French", "German", "History", "International Economics",
+            "Italian Studies", "Management Consulting", "Marketing", "Mathematics",
+            "Mechanical Engineering", "Medieval Studies", "Music",
+            "Neuroscience and Behavior", "Philosophy", "Physics",
+            "Political Science", "Psychology", "Romance Languages and Literatures",
+            "Russian", "Sociology", "Spanish", "Theology", "Theology and Philosophy"
         ], label_visibility="collapsed")
 
     st.markdown('<div class="section-label">Dorm</div>', unsafe_allow_html=True)
     dorm = st.selectbox("Dorm", [
-        "Pasquerilla West", "Pasquerilla East", "Lyons", "Lewis", "Badin",
-        "Welsh Family", "McGlinn", "Farley", "Pangborn", "Zahm",
-        "Dillon", "Alumni", "Sorin", "Stanford", "Morrissey",
-        "Keough", "O'Neill", "Duncan", "Flaherty", "Off Campus"
+        "Off Campus", "Alumni", "Badin", "Baumer", "Breen-Phillips", "Carroll",
+        "Cavanaugh", "Dillon", "Duncan", "Farley", "Fisher", "Flaherty",
+        "Graham", "Howard", "Johnson Family", "Keenan", "Keough", "Knott",
+        "Lewis", "Lyons", "McGlinn", "Morrissey", "O'Neill Family", "Pangborn",
+        "Pasquerilla East", "Pasquerilla West", "Ryan", "Siegfried", "Sorin",
+        "Stanford", "St. Edward's", "Walsh", "Welsh Family", "Zahm"
     ], label_visibility="collapsed")
 
     st.markdown('<div class="section-label">Interests</div>', unsafe_allow_html=True)
     interests = st.multiselect("Interests", [
-        "AI / Machine Learning", "Programming", "Robotics",
-        "Business", "Finance", "Art", "Music", "Sports",
-        "Volunteering", "Social / Networking", "Research",
-        "Entrepreneurship", "Pre-Law", "Pre-Med", "Faith & Service"
+        "Technology & Engineering", "Data Science / AI", "Business & Finance",
+        "Entrepreneurship / Startups", "Consulting", "Pre-Med / Health",
+        "Science & Research", "Pre-Law / Government",
+        "Politics & International Relations", "Psychology & Social Sciences",
+        "Arts & Creative (Music, Theatre, Design)", "Media & Communications",
+        "Faith & Service", "Volunteering / Community Service",
+        "Leadership & Networking", "Cultural & Identity Groups",
+        "Sports & Athletics", "Club Sports", "Fitness & Wellness",
+        "Outdoors & Adventure", "Social / Fun"
     ], label_visibility="collapsed")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown('<div class="section-label">Experience Level</div>', unsafe_allow_html=True)
-        experience = st.selectbox("Experience", ["Beginner", "Intermediate", "Advanced"], label_visibility="collapsed")
-    with col4:
-        st.markdown('<div class="section-label">Hours / Week</div>', unsafe_allow_html=True)
-        commitment = st.slider("Hours", 1, 10, 3, label_visibility="collapsed")
 
     st.markdown('<div class="section-label">Anything else?</div>', unsafe_allow_html=True)
     extra = st.text_input("Extra", placeholder="e.g. I want to meet people outside my major...", label_visibility="collapsed")
@@ -348,7 +352,7 @@ if st.button("Find My Clubs →"):
         st.warning("Please select at least one interest or add a note above.")
     else:
         with st.spinner("Finding your perfect clubs..."):
-            result = get_recommendations(query, experience, commitment, dorm, class_year, major)
+            result = get_recommendations(query, dorm, class_year, major)
 
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         st.markdown('<div class="hero-subtitle" style="margin-bottom:1.5rem">Your Top Matches</div>', unsafe_allow_html=True)
