@@ -166,6 +166,29 @@ span[data-baseweb="tag"] span[role="presentation"]:hover {
     color: #f0ece0 !important;
 }
 
+/* Kill red focus rings everywhere — replace with gold */
+*:focus,
+*:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+div[data-baseweb="select"]:focus-within,
+div[data-baseweb="input"]:focus-within {
+    border-color: rgba(201, 151, 0, 0.7) !important;
+    box-shadow: 0 0 0 2px rgba(201, 151, 0, 0.2) !important;
+}
+
+div[data-baseweb="select"] > div:focus-within {
+    border-color: rgba(201, 151, 0, 0.7) !important;
+    box-shadow: 0 0 0 2px rgba(201, 151, 0, 0.2) !important;
+}
+
+.stTextInput > div:focus-within {
+    border-color: rgba(201, 151, 0, 0.7) !important;
+    box-shadow: 0 0 0 2px rgba(201, 151, 0, 0.2) !important;
+}
+
 .stButton > button {
     width: 100%;
     background: linear-gradient(135deg, #AE9142, #C99700) !important;
