@@ -232,17 +232,31 @@ df, embeddings = load_data(model)
 # ---------------------------
 # Search function
 # ---------------------------
-def search_clubs(query, top_k=10):
+def search_clubs(query, top_k=10, exclude_grad=False):
     query_embedding = model.encode([query])
     similarities = cosine_similarity(query_embedding, embeddings)[0]
-    top_indices = similarities.argsort()[::-1][:top_k]
-    return df.iloc[top_indices][['Club Name', 'Club Description']]
+    top_indices = similarities.argsort()[::-1][:top_k * 2]  # grab extra to filter from
+    results = df.iloc[top_indices][['Club Name', 'Club Description']].copy()
+
+    if exclude_grad:
+        grad_keywords = ['graduate', 'masters', 'MBA', 'PhD', 'doctoral', 'law school', 'grad student']
+        pattern = '|'.join(grad_keywords)
+        results = results[~results['Club Name'].str.contains(pattern, case=False, na=False)]
+        results = results[~results['Club Description'].str.contains(pattern, case=False, na=False)]
+
+    return results.head(top_k)
 
 # ---------------------------
 # LLM recommendation function
 # ---------------------------
 def get_recommendations(query, dorm, class_year, major):
-    candidates = search_clubs(query)
+    is_undergrad = class_year in ["2026", "2027", "2028", "2029"]
+    candidates = search_clubs(query, exclude_grad=is_undergrad)
+
+    level_instruction = ""
+    if is_undergrad:
+        level_instruction = "IMPORTANT: This is an undergraduate student. Do NOT recommend any graduate, masters, MBA, PhD, or law school clubs."
+
     prompt = f"""
 A Notre Dame student is looking for clubs.
 
@@ -250,6 +264,8 @@ Interests: {query}
 Dorm: {dorm}
 Class Year: {class_year}
 Major: {major}
+
+{level_instruction}
 
 Here are some possible clubs:
 {candidates.to_string(index=False)}
@@ -295,7 +311,9 @@ with st.container():
 
     with col1:
         st.markdown('<div class="section-label">Class Year</div>', unsafe_allow_html=True)
-        class_year = st.selectbox("Class Year", ["2026", "2027", "2028", "2029"], label_visibility="collapsed")
+        class_year = st.selectbox("Class Year", [
+            "2026", "2027", "2028", "2029", "Graduate / Masters"
+        ], label_visibility="collapsed")
 
     with col2:
         st.markdown('<div class="section-label">Major</div>', unsafe_allow_html=True)
