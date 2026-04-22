@@ -249,21 +249,24 @@ def search_clubs(query, top_k=10, exclude_grad=False):
 # ---------------------------
 # LLM recommendation function
 # ---------------------------
-def get_recommendations(query, dorm, class_year, major):
+def get_recommendations(query, dorm, class_year, majors):
     is_undergrad = class_year in ["2026", "2027", "2028", "2029"]
     candidates = search_clubs(query, exclude_grad=is_undergrad)
+
+    major_str = ", ".join(majors) if majors else "Undecided"
 
     level_instruction = ""
     if is_undergrad:
         level_instruction = "IMPORTANT: This is an undergraduate student. Do NOT recommend any graduate, masters, MBA, PhD, or law school clubs."
 
     prompt = f"""
-A Notre Dame student is looking for clubs.
+You are recommending clubs to a Notre Dame student. Address them directly using "you" and "your" throughout.
 
-Interests: {query}
-Dorm: {dorm}
-Class Year: {class_year}
-Major: {major}
+Their profile:
+- Interests: {query}
+- Dorm: {dorm}
+- Class Year: {class_year}
+- Major(s): {major_str}
 
 {level_instruction}
 
@@ -275,7 +278,7 @@ Pick the best 5 clubs. For each, provide:
 - club_name (exact name from the list)
 - fit_percentage (0-100, how well it matches this student)
 - summary (1-2 sentence description of what the club does)
-- why (1-2 sentences on why it fits THIS specific student based on their profile)
+- why (1-2 sentences on why it fits YOU specifically — use "you" and "your", referencing their major(s), dorm, class year, or interests directly)
 
 Respond ONLY with a valid JSON object in this exact format, no markdown or extra text:
 {{
@@ -306,6 +309,45 @@ Respond ONLY with a valid JSON object in this exact format, no markdown or extra
 st.markdown('<div class="hero-title">☘️ ND Club Finder</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-subtitle">Discover your place at Notre Dame</div>', unsafe_allow_html=True)
 
+# Sorted lists
+DORMS = sorted([
+    "Off Campus", "Alumni", "Badin", "Baumer", "Breen-Phillips", "Carroll",
+    "Cavanaugh", "Dillon", "Duncan", "Farley", "Fisher", "Flaherty",
+    "Graham", "Howard", "Johnson Family", "Keenan", "Keough", "Knott",
+    "Lewis", "Lyons", "McGlinn", "Morrissey", "O'Neill Family", "Pangborn",
+    "Pasquerilla East", "Pasquerilla West", "Ryan", "Siegfried", "Sorin",
+    "Stanford", "St. Edward's", "Walsh", "Welsh Family", "Zahm"
+])
+
+MAJORS = sorted([
+    "Undecided", "Accountancy", "Aerospace Engineering", "Africana Studies",
+    "American Studies", "Anthropology",
+    "Applied & Computational Mathematics and Statistics (ACMS)",
+    "Arabic Studies", "Architecture", "Art History", "Biochemistry",
+    "Biological Sciences", "Business Analytics", "Chemical Engineering",
+    "Chemistry", "Chinese", "Civil Engineering", "Classics",
+    "Computer Science", "Economics", "Electrical Engineering",
+    "Engineering (General)", "English", "Environmental Engineering",
+    "Environmental Sciences", "Film, Television, and Theatre", "Finance",
+    "French", "German", "History", "International Economics",
+    "Italian Studies", "Management Consulting", "Marketing", "Mathematics",
+    "Mechanical Engineering", "Medieval Studies", "Music",
+    "Neuroscience and Behavior", "Philosophy", "Physics",
+    "Political Science", "Psychology", "Romance Languages and Literatures",
+    "Russian", "Sociology", "Spanish", "Theology", "Theology and Philosophy"
+])
+
+INTERESTS = sorted([
+    "Arts & Creative (Music, Theatre, Design)", "Business & Finance",
+    "Club Sports", "Consulting", "Cultural & Identity Groups",
+    "Data Science / AI", "Entrepreneurship / Startups", "Faith & Service",
+    "Fitness & Wellness", "Leadership & Networking", "Media & Communications",
+    "Outdoors & Adventure", "Politics & International Relations", "Pre-Law / Government",
+    "Pre-Med / Health", "Psychology & Social Sciences", "Science & Research",
+    "Social / Fun", "Sports & Athletics", "Technology & Engineering",
+    "Volunteering / Community Service"
+])
+
 with st.container():
     col1, col2 = st.columns(2)
 
@@ -316,47 +358,14 @@ with st.container():
         ], label_visibility="collapsed")
 
     with col2:
-        st.markdown('<div class="section-label">Major</div>', unsafe_allow_html=True)
-        major = st.selectbox("Major", [
-            "Undecided", "Accountancy", "Aerospace Engineering", "Africana Studies",
-            "American Studies", "Anthropology",
-            "Applied & Computational Mathematics and Statistics (ACMS)",
-            "Arabic Studies", "Architecture", "Art History", "Biochemistry",
-            "Biological Sciences", "Business Analytics", "Chemical Engineering",
-            "Chemistry", "Chinese", "Civil Engineering", "Classics",
-            "Computer Science", "Economics", "Electrical Engineering",
-            "Engineering (General)", "English", "Environmental Engineering",
-            "Environmental Sciences", "Film, Television, and Theatre", "Finance",
-            "French", "German", "History", "International Economics",
-            "Italian Studies", "Management Consulting", "Marketing", "Mathematics",
-            "Mechanical Engineering", "Medieval Studies", "Music",
-            "Neuroscience and Behavior", "Philosophy", "Physics",
-            "Political Science", "Psychology", "Romance Languages and Literatures",
-            "Russian", "Sociology", "Spanish", "Theology", "Theology and Philosophy"
-        ], label_visibility="collapsed")
+        st.markdown('<div class="section-label">Dorm</div>', unsafe_allow_html=True)
+        dorm = st.selectbox("Dorm", DORMS, label_visibility="collapsed")
 
-    st.markdown('<div class="section-label">Dorm</div>', unsafe_allow_html=True)
-    dorm = st.selectbox("Dorm", [
-        "Off Campus", "Alumni", "Badin", "Baumer", "Breen-Phillips", "Carroll",
-        "Cavanaugh", "Dillon", "Duncan", "Farley", "Fisher", "Flaherty",
-        "Graham", "Howard", "Johnson Family", "Keenan", "Keough", "Knott",
-        "Lewis", "Lyons", "McGlinn", "Morrissey", "O'Neill Family", "Pangborn",
-        "Pasquerilla East", "Pasquerilla West", "Ryan", "Siegfried", "Sorin",
-        "Stanford", "St. Edward's", "Walsh", "Welsh Family", "Zahm"
-    ], label_visibility="collapsed")
+    st.markdown('<div class="section-label">Major(s)</div>', unsafe_allow_html=True)
+    majors = st.multiselect("Major(s)", MAJORS, label_visibility="collapsed")
 
     st.markdown('<div class="section-label">Interests</div>', unsafe_allow_html=True)
-    interests = st.multiselect("Interests", [
-        "Technology & Engineering", "Data Science / AI", "Business & Finance",
-        "Entrepreneurship / Startups", "Consulting", "Pre-Med / Health",
-        "Science & Research", "Pre-Law / Government",
-        "Politics & International Relations", "Psychology & Social Sciences",
-        "Arts & Creative (Music, Theatre, Design)", "Media & Communications",
-        "Faith & Service", "Volunteering / Community Service",
-        "Leadership & Networking", "Cultural & Identity Groups",
-        "Sports & Athletics", "Club Sports", "Fitness & Wellness",
-        "Outdoors & Adventure", "Social / Fun"
-    ], label_visibility="collapsed")
+    interests = st.multiselect("Interests", INTERESTS, label_visibility="collapsed")
 
     st.markdown('<div class="section-label">Anything else?</div>', unsafe_allow_html=True)
     extra = st.text_input("Extra", placeholder="e.g. I want to meet people outside my major...", label_visibility="collapsed")
@@ -370,7 +379,7 @@ if st.button("Find My Clubs →"):
         st.warning("Please select at least one interest or add a note above.")
     else:
         with st.spinner("Finding your perfect clubs..."):
-            result = get_recommendations(query, dorm, class_year, major)
+            result = get_recommendations(query, dorm, class_year, majors)
 
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         st.markdown('<div class="hero-subtitle" style="margin-bottom:1.5rem">Your Top Matches</div>', unsafe_allow_html=True)
