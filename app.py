@@ -24,7 +24,7 @@ model = load_model()
 # ---------------------------
 @st.cache_data
 def load_data(_model):
-    df = pd.read_excel("clubs.xlsx")
+     df = pd.read_excel("clubs.xlsx", index_col=0)
     df = df.dropna(subset=["Club Name", "Club Description"])
     sentences = (df['Club Name'] + ". " + df['Club Description']).tolist()
     embeddings = _model.encode(sentences, show_progress_bar=False)
