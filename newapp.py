@@ -12,7 +12,7 @@ import json
 # Page config
 # ---------------------------
 st.set_page_config(
-    page_title="ND Club Finder",
+    page_title="ND Central",
     page_icon="☘️",
     layout="centered"
 )
