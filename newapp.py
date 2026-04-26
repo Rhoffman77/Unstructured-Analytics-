@@ -346,7 +346,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown or extra
 # ---------------------------
 # UI
 # ---------------------------
-st.markdown('<div class="hero-title">☘️ ND Club Finder</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-title">☘️ ND Central</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-subtitle">Discover your place at Notre Dame</div>', unsafe_allow_html=True)
 
 # Sorted lists
